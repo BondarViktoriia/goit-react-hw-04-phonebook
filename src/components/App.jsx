@@ -1,96 +1,63 @@
 import ContactForm from './ContactForm';
-import React, { Component } from 'react';
+import  { useState,useEffect } from 'react';
 import ContactList from './ContactList';
 import { nanoid } from 'nanoid';
 import Filter from './Filter';
 import Notiflix from 'notiflix';
 import { PhoneBook, PhonebookContainer, ContactsTitle } from './App.styled';
 
-class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
 
-  componentDidMount() {
-    const contacts = localStorage.getItem('contacts');
-    const contactsParsed = JSON.parse(contacts);
-    if (contactsParsed) {
-      this.setState({
-        contacts: contactsParsed,
-        filter: '',
-      });
-    }
-  }
+export const App = () => {
 
-  componentDidUpdate(_, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
+  const [filter, setFilter] = useState('')
+  const [contacts, setContacts] = useState(
+    JSON.parse(localStorage.getItem('contacts')) || []
+  );
+  
+    useEffect(() => {
+    window.localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-  addContact = ({ name, number }) => {
-    const contact = {
-      id: nanoid(),
-      name,
-      number,
-    };
 
-    const { contacts } = this.state;
-
-    if (
-      contacts.find(
-        contact => contact.name.toLowerCase() === name.toLowerCase()
-      )
-    ) {
-      Notiflix.Notify.warning(`${name} is already in contacts.`, {
+    const addContact = ({ name, number }) => {
+    const existingName = contacts.find(contact => contact.name === name);
+    existingName !== undefined
+      ?  Notiflix.Notify.warning(`${name} is already in contacts.`, {
         width: '500px',
         height: '40px',
         backOverlay: true,
         clickToClose: true,
         closeButton: true,
-      });
-    } else if (contacts.find(contact => contact.number === number)) {
-      Notiflix.Notify.warning(`${number} is already in contacts.`);
-    } else {
-      this.setState(({ contacts }) => ({
-        contacts: [contact, ...contacts],
-      }));
-    }
+      })
+      : setContacts([...contacts, { id: nanoid(), name, number }]);
   };
 
-  deleteContact = contactId => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== contactId),
-    }));
-  };
 
-  changeFilter = e => {
-    this.setState({ filter: e.currentTarget.value });
-  };
 
-  render() {
-    const { filter, contacts } = this.state;
-    const normalizedFilter = this.state.filter.toLowerCase();
-    const filterContacts = this.state.contacts.filter(contact =>
+  const  deleteContact = contactId => {
+ 
+     setContacts(contacts.filter(contact => contact.id !== contactId));
+  };
+  const  changeFilter = e => {
+    const { value } = e.target;
+    setFilter(value);
+  };
+  const normalizedFilter = filter.toLowerCase();
+  const filterContacts = contacts.filter(contact =>
       contact.name.toLowerCase().includes(normalizedFilter)
     );
-    return (
+
+  return (
       <PhonebookContainer>
         <PhoneBook>Phonebook</PhoneBook>
-        <ContactForm onSubmit={this.addContact} />
-        <Filter value={filter} onChange={this.changeFilter} />
+        <ContactForm onSubmit={addContact} />
+        <Filter value={filter} onChange={changeFilter} />
 
         <ContactsTitle>Contacts</ContactsTitle>
         {contacts.length > 0 ? (
           <ContactList
             contacts={filterContacts}
-            onDeleteContact={this.deleteContact}
+            onDeleteContact={deleteContact}
           />
         ) : (
           Notiflix.Notify.info('Your phonebook is empty. Please add contact.', {
@@ -110,7 +77,7 @@ class App extends Component {
         )}
       </PhonebookContainer>
     );
-  }
 }
+
 
 export default App;
